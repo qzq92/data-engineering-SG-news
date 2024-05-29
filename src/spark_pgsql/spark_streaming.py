@@ -17,7 +17,7 @@ logging.basicConfig(
 
 
 def create_spark_session() -> SparkSession:
-    """Instantiate a spark session if there is none, otherwise get from existing sessions with specified configuration for spark jars packages, a list of Maven coordinates of jars to include on the driver and executor classpaths of Spark.
+    """Instantiate a spark session if there is none, otherwise get from existing sessions with specified configuration for spark jars packages, a list of Maven coordinates of jars to include on the driver and executor classpaths of Spark. Refer to documentation on the supported maven coordinates.
     
     Returns:
         SparkSession: _description_
