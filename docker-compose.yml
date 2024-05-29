@@ -17,7 +17,8 @@ services:
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
     volumes:
       - ./kafka:/bitnami/kafka
-
+  
+  # Interface for Kafka UI
   kafka-ui:
     container_name: kafka-ui-1
     image: provectuslabs/kafka-ui:latest
@@ -32,6 +33,7 @@ services:
     networks:
       - airflow-kafka
 
+  # Proxy Container to listens on port 2375, accepts connections, and forwards the connections to a docker socket mapped to our docker
   docker-proxy:
     image: bobrik/socat
     command: "TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock"
@@ -56,12 +58,20 @@ services:
       retries: 10
     volumes:
       - pgdata:/var/lib/postgresql/data 
- 
+    networks:
+      - airflow-kafka
+
   adminer:
     image: adminer
     restart: always
     ports:
       - 8080:8080
+    networks:
+      - airflow-kafka
+
 networks:
   airflow-kafka:
     external: true
+
+volumes:
+  pgdata: /var/lib/postgresql/data
