@@ -1,3 +1,5 @@
+# Spark is use for processing the incoming data offered by Kafka streaming.
+
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     StructType,
@@ -5,7 +7,7 @@ from pyspark.sql.types import (
     StringType,
 )
 from pyspark.sql.functions import from_json, col
-from src.constants import POSTGRES_URL, POSTGRES_PROPERTIES, DB_FIELDS
+from src.constants import POSTGRES_URL, POSTGRES_TABLE_NAME, POSTGRES_PROPERTIES, DB_FIELDS, URL_TOPIC, KAFKA_PRODUCER_CLUSTER_PORT
 import logging
 
 
@@ -15,12 +17,16 @@ logging.basicConfig(
 
 
 def create_spark_session() -> SparkSession:
+    """Instantiate a spark session if there is none, otherwise get from existing sessions with specified configuration for spark jars packages, a list of Maven coordinates of jars to include on the driver and executor classpaths of Spark.
+    
+    Returns:
+        SparkSession: _description_
+    """
     spark = (
         SparkSession.builder.appName("PostgreSQL Connection with PySpark")
         .config(
             "spark.jars.packages",
-            "org.postgresql:postgresql:42.5.4,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0",
-
+            "org.postgresql:postgresql:42.7.3,org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.4",
         )
         .getOrCreate()
     )
@@ -31,21 +37,21 @@ def create_spark_session() -> SparkSession:
 
 def create_initial_dataframe(spark_session):
     """
-    Reads the streaming data and creates the initial dataframe accordingly.
+    Reads the streaming data via spark session readStream attributes and creates the initial dataframe accordingly.
     """
     try:
-        # Gets the streaming data from topic random_names
+        # Loads the streaming data by subscribing
         df = (
             spark_session.readStream.format("kafka")
-            .option("kafka.bootstrap.servers", "kafka:9092")
-            .option("subscribe", "rappel_conso")
+            .option("kafka.bootstrap.servers", f"kafka:{KAFKA_PRODUCER_CLUSTER_PORT}")
+            .option("subscribe", str(URL_TOPIC)) #Only 1 topic, expand value for multiple topics
             .option("startingOffsets", "earliest")
             .load()
         )
-        logging.info("Initial dataframe created successfully")
+        logging.info("Initial dataframe created successfully from kafka stream.")
     except Exception as e:
         logging.warning(f"Initial dataframe couldn't be created due to exception: {e}")
-        raise
+        raise e
 
     return df
 
@@ -54,6 +60,7 @@ def create_final_dataframe(df):
     """
     Modifies the initial dataframe, and creates the final dataframe.
     """
+    # Define schema for dataframe
     schema = StructType(
         [StructField(field_name, StringType(), True) for field_name in DB_FIELDS]
     )
@@ -67,11 +74,11 @@ def create_final_dataframe(df):
 
 def start_streaming(df_parsed, spark):
     """
-    Starts the streaming to table spark_streaming.rappel_conso in postgres
+    Starts the streaming to table spark_streaming.URL_ in postgres
     """
     # Read existing data from PostgreSQL
     existing_data_df = spark.read.jdbc(
-        POSTGRES_URL, "rappel_conso_table", properties=POSTGRES_PROPERTIES
+        POSTGRES_URL, POSTGRES_TABLE_NAME, properties=POSTGRES_PROPERTIES
     )
 
     unique_column = "reference_fiche"
@@ -83,7 +90,7 @@ def start_streaming(df_parsed, spark):
                 existing_data_df, batch_df[unique_column] == existing_data_df[unique_column], "leftanti"
             )
             .write.jdbc(
-                POSTGRES_URL, "rappel_conso_table", "append", properties=POSTGRES_PROPERTIES
+                POSTGRES_URL, POSTGRES_TABLE_NAME, "append", properties=POSTGRES_PROPERTIES
             )
         )
     ).trigger(once=True) \

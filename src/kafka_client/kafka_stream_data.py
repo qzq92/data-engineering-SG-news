@@ -2,8 +2,8 @@ from src.constants import (
     URL,
     URL_TOPIC,
     PATH_LAST_PROCESSED,
-    KAFKA_PRODUCER_DEFAULT_PORT,
-    KAFKA_PRODUCER_LOCAL_PORT
+    KAFKA_PRODUCER_CLUSTER_PORT,
+    KAFKA_PRODUCER_EXT_PORT
 )
 from .transformations import transform_row
 from kafka import KafkaProducer
@@ -110,7 +110,7 @@ def create_kafka_producer(cluster_port: int, ext_port: int):
         producer = KafkaProducer(bootstrap_servers=[f"kafka:{cluster_port}"])
     except kafka.errors.NoBrokersAvailable:
         logging.info(
-            f"No brokers available, so we use localhost instead of kafka via external port {ext_port}"
+            f"No brokers available, localhost is used via external port {ext_port}"
         )
         # External comms
         producer = KafkaProducer(bootstrap_servers=[f"localhost:{ext_port}"])
@@ -129,7 +129,10 @@ def stream():
     """
     Writes the API data to Kafka topic 'CNA_rss_business' upon transformation
     """
-    producer = create_kafka_producer(cluster_port=9092, ext_port=9094)
+    producer = create_kafka_producer(
+        cluster_port=KAFKA_PRODUCER_CLUSTER_PORT,
+        ext_port=KAFKA_PRODUCER_EXT_PORT
+        )
     results = query_data()
     # Transform data after querying and send for consumption by looping through
     kafka_data_full = map(process_data, results)
@@ -139,6 +142,7 @@ def stream():
         producer.send(URL_TOPIC, json.dumps(kafka_data).encode("utf-8")).add_callback(on_send_success).add_errback(on_send_error)
 
     producer.flush()
+    
 # Main function
 if __name__ == "__main__":
     stream()
