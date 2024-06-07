@@ -10,7 +10,7 @@ URL_TOPIC = "CNA_Business"
 
 # POSTGRES PARAMS. Defaults to localhost if POSTGRES_DOCKER_USER exist
 user_name = os.getenv("POSTGRES_DOCKER_USER", "localhost")
-POSTGRES_URL = f"jdbc:postgresql://{user_name}:5432/postgres"
+POSTGRES_URL = f"jdbc:postgresql://host.docker.internal:5432/postgres"
 POSTGRES_PASSWORD =  "admin"
 POSTGRES_USER = "admin"
 POSTGRES_DB = "admin"
