@@ -7,7 +7,7 @@ from src.constants import (
 )
 from .transformations import transform_row
 from kafka import KafkaProducer
-from typing import List
+from typing import List, Callable, Tuple
 import feedparser
 import kafka.errors
 import json
@@ -17,7 +17,7 @@ import logging
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO, force=True)
 
 
-def get_latest_timestamp_from_file():
+def get_latest_timestamp_from_file() -> datetime:
     """
     Gets the latest timestamp from the last_processed.json file
     """
@@ -29,10 +29,9 @@ def get_latest_timestamp_from_file():
             return datetime.datetime.min
 
 
-def update_last_processed_file(data: List[dict]):
+def update_last_processed_file(data: List[dict]) -> None:
     """
-    Updates the last_processed.json file with the latest timestamp. Since the comparison is strict
-    on the field date_de_publication, we set the new last_processed day to the latest timestamp minus one day.
+    Updates the last_processed.json file with the latest timestamp. Since the comparison is strict on the field date_de_publication, we set the new last_processed day to the latest timestamp minus one day.
     """
     publication_dates_as_timestamps = [
         datetime.datetime.strptime(row["date_de_publication"], "%Y-%m-%d")
@@ -45,7 +44,7 @@ def update_last_processed_file(data: List[dict]):
         json.dump({"last_processed": last_processed_as_string}, file)
 
 
-def get_all_data(last_processed_timestamp: datetime.datetime, url: str) -> List[dict]:
+def get_all_data(last_processed_timestamp: datetime.datetime, url: str) -> Tuple[List[dict], datetime]:
     """Get all data from configured URL and update processed timestamp info when data is available.
 
     Args:
@@ -76,7 +75,7 @@ def deduplicate_data(data: List[dict]) -> List[dict]:
 
 def query_data() -> List[dict]:
     """
-    Queries the data from the API of interest. Called under __main__
+    Queries the data from the API of interest. Function is called under __main__
     """
     last_processed_date = get_latest_timestamp_from_file()
     full_data = get_all_data(last_processed_timestamp=last_processed_date, url=URL)
@@ -86,22 +85,15 @@ def query_data() -> List[dict]:
     return full_data
 
 
-def process_data(row):
+def process_data(row) -> Callable:
     """
     Processes the data from the API
     """
     return transform_row(row)
 
 
-def create_kafka_producer(cluster_port: int, ext_port: int):
-    """Creates the Kafka producer object (broker) in the cluster using specified default port within a cluster and enable external connection to cluster via fallback_port
-
-    Args:
-        default_port (int, optional): _description_.
-        fallback_port (int, optional): _description_.
-
-    Returns:
-        _type_: _description_
+def create_kafka_producer(cluster_port: int, ext_port: int) -> KafkaProducer:
+    """Creates the Kafka producer object (broker) in the cluster using specified cluster port within a cluster and enable external connection to cluster via ext_port
     """
     cluster_port = str(cluster_port)
     ext_port = str(ext_port)
