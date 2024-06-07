@@ -34,7 +34,7 @@ services:
     networks:
       - airflow-kafka
 
-  # Proxy Container to listens on port 2375, accepts connections, and forwards the connections to a docker socket mapped to our docker
+  # Proxy Container to listens via port 2375, accepts connections, and forwards the connections to a docker socket mapped to our docker. Used by Apache airflow orchestrator. Mapped to 2376 on host computer
   docker-proxy:
     image: bobrik/socat:latest
     command: "TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock"
@@ -47,6 +47,7 @@ services:
 
   # Postgres database
   db:
+    container_name: psql
     image: postgres:16.3
     restart: always
     environment:
@@ -64,9 +65,9 @@ services:
       - 5432:5432
     networks:
       - airflow-kafka
-
+  # Database management
   adminer:
-    image: adminer
+    image: adminer: standalone
     restart: always
     ports:
       - 8080:8080

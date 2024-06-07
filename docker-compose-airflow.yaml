@@ -41,6 +41,8 @@
 #
 # Feel free to modify this file to suit your needs.
 ---
+
+# Definitions of variable
 version: '3.8'
 x-airflow-common:
   &airflow-common
@@ -53,7 +55,7 @@ x-airflow-common:
   image: de-project/airflow:latest
   environment:
     &airflow-common-env
-    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor #CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     # For backward compatibility, with Airflow <2.3
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
@@ -91,7 +93,7 @@ services:
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
+      - postgres-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
@@ -226,11 +228,10 @@ services:
       - -c
       - airflow
 
-
+# Our network and volume to use
 networks:
   airflow-kafka:
     external: true
 
 volumes:
-  postgres-db-volume:
-
+  postgres-volume:

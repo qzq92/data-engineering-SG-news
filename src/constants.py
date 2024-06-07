@@ -10,12 +10,15 @@ URL_TOPIC = "CNA_Business"
 
 # POSTGRES PARAMS. Defaults to localhost if POSTGRES_DOCKER_USER exist
 user_name = os.getenv("POSTGRES_DOCKER_USER", "localhost")
+
+# Actual IP should be used for POSTGRESQL for PROD env
 POSTGRES_URL = f"jdbc:postgresql://host.docker.internal:5432/postgres"
 POSTGRES_PASSWORD =  "admin"
 POSTGRES_USER = "admin"
 POSTGRES_DB = "admin"
 POSTGRES_TABLE_NAME = URL_TOPIC
 
+# SPARK Package configuration for use by Spark Session
 SPARK_PKG = "org.postgresql:postgresql:42.7.3,org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.4"
 
 # Columns to expand

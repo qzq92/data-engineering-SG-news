@@ -25,7 +25,7 @@ with DAG(
 ) as dag:
 
     # Define DAG tasks
-    # Python task
+    # Add to DAG PythonOperator
     kafka_stream_task = PythonOperator(
         task_id="kafka_data_stream",
         python_callable=stream, # python function
@@ -33,18 +33,18 @@ with DAG(
         dag=dag,
     )
 
-    # Docker task
+    # Add to DAG with docker operator allow us to run Spark docker-containers in our case.To ensure security, use docker-proxy to listen to access host docker via tcp connection url
     spark_stream_task = DockerOperator(
         task_id="pyspark_consumer",
         image=f"{URL_TOPIC}/spark:latest", # Our docker image to run
         api_version="auto",
         auto_remove=True, # Remove after completion
-        command=f"./bin/spark-submit --master local[*] --packages {SPARK_PKG} ./spark_streaming.py",
-        docker_url='tcp://docker-proxy:2375',
-        environment={'SPARK_LOCAL_HOSTNAME': 'localhost'}, # Docker image environment
+        command=f"./bin/spark-submit --master local[*] --packages {SPARK_PKG} ./spark_streaming.py", #Job submission using spark steaming file with local as master
+        docker_url='tcp://docker-proxy:2375', #url of the host running the docker daemon.
+        environment={'SPARK_LOCAL_HOSTNAME': 'localhost'}, # Docker image environment setup
         network_mode="airflow-kafka",
         dag=dag,
     )
 
-    # Dependency order
+    # Dependency order for tasks
     kafka_stream_task >> spark_stream_task
