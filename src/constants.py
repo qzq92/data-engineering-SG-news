@@ -26,8 +26,8 @@ COLUMNS_TO_NORMALIZE = []
 
 # Important fields to extract
 COLUMNS_TO_KEEP = [
+    "id", # Will serve as Primary Key for database
     "title",
-    "id",
     "link",
     "published",
     "description",
