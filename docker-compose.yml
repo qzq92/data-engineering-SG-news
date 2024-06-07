@@ -1,6 +1,7 @@
 version: '3'
 
 services:
+#1 broker for receiving messages from producers (which are the sources of data), storing these messages, and delivering them to consumers (which are the sinks or end-users of the data)
   kafka:
     image: 'bitnami/kafka:latest'
     ports:
@@ -35,7 +36,7 @@ services:
 
   # Proxy Container to listens on port 2375, accepts connections, and forwards the connections to a docker socket mapped to our docker
   docker-proxy:
-    image: bobrik/socat
+    image: bobrik/socat:latest
     command: "TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock"
     ports:
       - "2376:2375"
@@ -44,11 +45,12 @@ services:
     networks:
       - airflow-kafka
 
+  # Postgres database
   db:
-    image: postgres
+    image: postgres:16.3
     restart: always
     environment:
-      POSTGRES_PASSWORD: example
+      POSTGRES_PASSWORD: admin
       POSTGRES_USER: admin
       POSTGRES_DB: admin
     healthcheck:
@@ -57,7 +59,9 @@ services:
       timeout: 5s
       retries: 10
     volumes:
-      - pgdata:/var/lib/postgresql/data 
+      - postgres-volume:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
     networks:
       - airflow-kafka
 
@@ -69,9 +73,11 @@ services:
     networks:
       - airflow-kafka
 
+# Docker network airflow-kafka that joins pre-existing network
 networks:
   airflow-kafka:
     external: true
 
+# Docker volume path (default mapped to \\wsl.localhost\docker-desktop-data\data\docker\volumes)
 volumes:
-  pgdata: /var/lib/postgresql/data
+  postgres-volume:
